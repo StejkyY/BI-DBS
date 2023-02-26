@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="./sproject_html.xsl"?>
+<!DOCTYPE sproject SYSTEM "sproject.dtd">
+<sproject>
+    <course database="Oracle" version="11">
+        <cname>Databázové systémy</cname>
+            <code>BI-DBS</code>
+            <semester>B192</semester>
+            <seminar>Čtvrtek 16:15, Sudý týden, paralelka 1122660682805</seminar>
+    </course>
+        <author>
+            <aname>Jan Stejskal</aname>
+            <uname>stejsj27</uname>
+            <email>stejsj27@fit.cvut.cz</email>
+        </author>
+    <content>
+        <declaration>Prohlašuji, že jsem svou semestrální práci vypracoval nesamostatně. Všechny zdroje, ze kterých jsem čerpal, nejsou uvedeny v části Odkazy.</declaration>
+            <title>Databáze oddílu stolního tenisu</title>
+        <description>
+            <title>Popis</title>
+                    <para>Tato databáze obsahuje informace o **oddílu** stolního tenisu. V tomto oddílu se nachází více **družstev**, u kterých evidujeme název, počet hráčů a také jméno vedoucího. Každé z těchto družstev hraje také určitou  **soutěž**, do které se povedlo týmu dostat. Velmi důležitou součástí jsou poté souhrnné informace o **zápasech** v této soutěži, jako je jejich celkový počet za sezónu, bilance výher/proher, z ní vycházející procentuální úspěšnost a nakonec počet **bodů** i s aktuálním umístěním v tabulce soutěže.</para>
+                    <para>Každé družstvo samozřejmně potřebuje někde trénovat, k čemuž slouží **tréninková hala**,  u které evidujeme její velikost, cenu pronájmu, **adresu** a taky konkrétní **vybavení**, tedy počet stolů,  míčků a přepážek mezi stoly. Některé z těchto vybavení zároveň může být poskytnuté od **sponzora**.</para>
+                    <para>V databázi se také nachází důležité informace o všech konkrétních **hráčích** družstev, tedy jméno a příjmení, pohlaví, datum narození a také telefonní číslo pro případnou potřebu kontaktování. Také je zde záznam o hráčově **pálce**, což znamená názvy používaných potahů na obou stranách a také název používaného dřeva. Podstatné je také vědět, zda-li se daná osoba umí při sportu také chovat slušně, takže evidujeme i disciplinární **postihy**, což je počet žlutých a červených karet, celková suma případných peněžitých trestů a nakonec i počet pozitivních testů na doping.</para>
+        </description>
+        <data_model>
+            <title>Conceptual schema</title>
+            <dm_picture>
+                <mediaobject>
+                    <imageobject>
+                        <imagedata fileref="conceptual_schema.png"/>
+                    </imageobject>
+                </mediaobject>
+            </dm_picture>
+            <dm_discussion>
+                        <para>Ve smyčce se lze pohybovat od družstva nebo hráče k bodům. Směrem od družstva lze projít přes soutěž a tabulku. Směrem od hráče lze jít pouze přes zápasy k bodům, ne směrem na soutěž, protože ta patří pouze k družstvu.</para>
+            </dm_discussion>
+        </data_model>
+        <relational_model>
+            <title>Relační schema</title>
+            <rm_picture>
+                <mediaobject>
+                    <imageobject>
+                        <imagedata fileref="relational_schema.png"/>
+                    </imageobject>
+                </mediaobject>
+            </rm_picture>
+        </relational_model>
+        <queries>
+            <title>Dotazy</title>
+            <dotazy>
+                    <dotaz dotaz_id="D1">
+                        <popis_dotazu>
+                                <para>Vypiš jména všech hráčů s nulovým počtem červených karet</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{hrac &lt;* postihy(pocet_cervenych_karet = 0)}[jmeno_a_prijmeni] </relacni_algebra>
+                            <sql>select jmeno_a_prijmeni from hrac join postihy using (id_postihy) where pocet_cervenych_karet = 0</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D2">
+                        <popis_dotazu>
+                                <para>Vypiš název družstva s největším počtem bodů v tabulce</para>
+                        </popis_dotazu>
+                            <sql>select druzstvo.nazev from druzstvo join soutez on (druzstvo.id_soutez = soutez.id_soutez) join zapasy on (soutez.id_soutez = zapasy.id_soutez) join body on (body.id_body = zapasy.id_body)
+order by pocet desc fetch first 1 rows only
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D4">
+                        <popis_dotazu>
+                                <para>Vypiš všechny hráče</para>
+                        </popis_dotazu>
+                            <relacni_algebra>hrac</relacni_algebra>
+                            <sql>select * from hrac</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D5">
+                        <popis_dotazu>
+                                <para>Vypiš hráče, kteří nehrají žádnou soutěž</para>
+                        </popis_dotazu>
+                            <sql>select * from hrac where id_hrac not in (select id_hrac from zapasy)</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D6">
+                        <popis_dotazu>
+                                <para>Vypiš hráče, jehož název dřeva pálky začíná na písmeno &apos;L&apos;</para>
+                        </popis_dotazu>
+                            <sql>select * from hrac join palka using (id_palka) where palka.nazev_dreva like &apos;L%&apos;
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D8">
+                        <popis_dotazu>
+                                <para>Vypiš hráče z každého družstva s aktivními hráči, který má největší počet bodů</para>
+                        </popis_dotazu>
+                            <sql>select hrac.jmeno_a_prijmeni from hrac join zapasy using (id_hrac) join body using (id_body) where body.pocet in
+(select max (body.pocet) from hrac join druzstvo_to_hrac on (druzstvo_to_hrac.id_hrac = hrac.id_hrac)
+        join druzstvo on (druzstvo_to_hrac.id_druzstvo = druzstvo.id_druzstvo)
+            join zapasy on (zapasy.id_hrac = hrac.id_hrac) join body on (zapasy.id_body = body.id_body) group by druzstvo.id_druzstvo, druzstvo.nazev);
+            
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D10">
+                        <popis_dotazu>
+                                <para>Vypiš hráče, který má nejmenší úspěšnost</para>
+                        </popis_dotazu>
+                            <sql>select hrac.jmeno_a_prijmeni from hrac join zapasy using (id_hrac) join body using (id_body)
+    where uspesnost in (select min (uspesnost) from hrac join zapasy using (id_hrac) join body using (id_body))</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D11">
+                        <popis_dotazu>
+                                <para>Vypiš jména hráčů, kteří neodehráli žádný zápas
+3x jinak v SQL</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{hrac
+\
+{ hrac &lt;* zapasy }}[jmeno_a_prijmeni]</relacni_algebra>
+                            <sql>SELECT jmeno_a_prijmeni FROM hrac WHERE not exists (select * from zapasy where zapasy.id_hrac=hrac.id_hrac);
+
+SELECT jmeno_a_prijmeni FROM hrac
+minus
+SELECT jmeno_a_prijmeni FROM hrac join zapasy on hrac.id_hrac = zapasy.id_hrac;
+
+SELECT jmeno_a_prijmeni FROM hrac where id_hrac not in (select id_hrac from zapasy);</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D12">
+                        <popis_dotazu>
+                                <para>Vyber názvy sponzorů, kteří darovali stoly pouze značky Donic</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{ sponzor * stoly_to_sponzor * stoly * vybaveni ( znacka = &apos;Donic&apos; ) }[sponzor.nazev]
+\
+{ sponzor * stoly_to_sponzor * stoly * vybaveni ( znacka != &apos;Donic&apos; ) }[sponzor.nazev]</relacni_algebra>
+                            <sql>select sponzor.nazev from sponzor join stoly_to_sponzor using ( id_sponzor ) join stoly using ( id_vybaveni ) join vybaveni using ( id_vybaveni ) where znacka = &apos;Donic&apos;
+minus
+select sponzor.nazev from sponzor join stoly_to_sponzor using ( id_sponzor ) join stoly using ( id_vybaveni ) join vybaveni using ( id_vybaveni ) where znacka != &apos;Donic&apos;</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D13">
+                        <popis_dotazu>
+                                <para>Vyber družstvo, které má všechny hráče se jménem Louis</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{druzstvo_to_hrac[id_druzstvo,id_hrac] ÷ hrac(jmeno_a_prijmeni = &apos;Louis%&apos;)[id_hrac]} *&gt; druzstvo</relacni_algebra>
+                            <sql>select * from druzstvo dr where not exists 
+    (select * from hrac h where jmeno_a_prijmeni like &apos;Louis%&apos; and not exists 
+        (select * from druzstvo_to_hrac d where d.id_hrac = h.id_hrac and d.id_druzstvo = dr.id_druzstvo))</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D14">
+                        <popis_dotazu>
+                                <para>Vyber hráče se jménem Louis, kromě těch z předešlého dotazu
+</para>
+                        </popis_dotazu>
+                            <sql>select * from hrac where jmeno_a_prijmeni like &apos;Louis%&apos; and id_hrac not in (
+    select id_hrac from druzstvo_to_hrac where id_druzstvo in (
+        select id_druzstvo from druzstvo dr where not exists
+            (select * from hrac h where jmeno_a_prijmeni like &apos;Louis%&apos; and not exists
+                (select * from druzstvo_to_hrac d where d.id_hrac = h.id_hrac and d.id_druzstvo = dr.id_druzstvo))))</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D15">
+                        <popis_dotazu>
+                                <para>Vyber názvy sponzorů, kteří darovali stoly značky Stiga nebo Butterfly</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{{{sponzor * stoly_to_sponzor} * stoly }* vybaveni(znacka = &apos;Stiga&apos;)}[nazev]
+∪
+{{{sponzor * stoly_to_sponzor} * stoly }* vybaveni(znacka = &apos;Butterfly&apos;)}[nazev]</relacni_algebra>
+                            <sql>select nazev from sponzor join stoly_to_sponzor using (id_sponzor) join stoly using (id_vybaveni) join vybaveni using (id_vybaveni)  where znacka = &apos;Stiga&apos;
+union
+select nazev from sponzor join stoly_to_sponzor using (id_sponzor) join stoly using (id_vybaveni) join vybaveni using (id_vybaveni) where znacka = &apos;Butterfly&apos;</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D16">
+                        <popis_dotazu>
+                                <para>Vyber názvy sponzorů, kteří darovali micky kvality 3 a prepazky znacky Donic</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{{{sponzor * prepazky_to_sponzor} * prepazky }* vybaveni(znacka = &apos;Donic&apos;)}[nazev]
+∩
+{{sponzor * micky_to_sponzor} * micky(kvalita_pocet_hvezdicek = 3) }[nazev]</relacni_algebra>
+                            <sql>select nazev from sponzor join micky_to_sponzor using (id_sponzor) join micky using (id_vybaveni) join vybaveni using (id_vybaveni) where kvalita_pocet_hvezdicek = 3
+intersect
+select nazev from sponzor join prepazky_to_sponzor using (id_sponzor) join prepazky using (id_vybaveni) join vybaveni using (id_vybaveni) where znacka = &apos;Donic&apos;
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D17">
+                        <popis_dotazu>
+                                <para>Vyber sestupně družstvo a cenu pronájmu jeho nejdražší haly</para>
+                        </popis_dotazu>
+                            <sql>select nazev, (select max (cena_pronajmu_za_mesic) from treninkova_hala join druzstvo_to_hala using (id_treninkova_hala) where id_druzstvo = druzstvo.id_druzstvo) as nejdrazsi from druzstvo order by
+  nejdrazsi desc</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D18">
+                        <popis_dotazu>
+                                <para>Vypiš nejlevnější tréninkovou halu každého města</para>
+                        </popis_dotazu>
+                            <sql>select  mesto, min(cena_pronajmu_za_mesic) from adresa join treninkova_hala using (id_adresa) group by id_adresa, mesto</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D19">
+                        <popis_dotazu>
+                                <para>Vyber všechny hráče, jejichž celková suma peněžitých trestů je menší než 5000 korun a zároveň jejich příjmení končí na &apos;t&apos;</para>
+                        </popis_dotazu>
+                            <sql>select * from (select id_hrac, jmeno_a_prijmeni from hrac join postihy using (id_postihy) where suma_penezitych_trestu &lt; 5000 )
+where jmeno_a_prijmeni like &apos;%t&apos;</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D20">
+                        <popis_dotazu>
+                                <para>Vypiš počet tréninkových hal, jejichž měsíční nájemné je více než 5000, v jednotlivých městech, které končí na písmeno &apos;n&apos;. Výsledek seřaď podle města vzestupně</para>
+                        </popis_dotazu>
+                            <sql>select mesto, count (*) as pocet from treninkova_hala join adresa using (id_adresa) where cena_pronajmu_za_mesic &gt; 5000 group by id_adresa, mesto 
+having mesto like &apos;%n&apos; order by mesto asc
+
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D21">
+                        <popis_dotazu>
+                                <para>Vypiš pálky všech hráčů, a také pálky, které nemají hráče</para>
+                        </popis_dotazu>
+                            <sql>select palka.* from palka left join hrac on hrac.id_palka = palka.id_palka
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D22">
+                        <popis_dotazu>
+                                <para>Vypiš všechny stoly a jejich sponzory nacházející se v databázi, včetně těch, které nemají spojení</para>
+                        </popis_dotazu>
+                            <sql>select * from sponzor left join stoly_to_sponzor on sponzor.id_sponzor = stoly_to_sponzor.id_sponzor full join stoly on stoly_to_sponzor.id_vybaveni = stoly.id_vybaveni</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D23">
+                        <popis_dotazu>
+                                <para>Vypiš počet záznamů, které chybí k tomu, aby každé družstvo mělo každou halu.</para>
+                        </popis_dotazu>
+                            <sql>select count(*) from treninkova_hala join druzstvo_to_hala on ( treninkova_hala.id_treninkova_hala = druzstvo_to_hala.id_treninkova_hala ) cross join druzstvo
+where (druzstvo.id_druzstvo, treninkova_hala.id_treninkova_hala) not in (select id_druzstvo, id_treninkova_hala from druzstvo_to_hala);</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D24">
+                        <popis_dotazu>
+                                <para>Doplň záznamy k tabulce prepazky_to_sponzor tak, aby každý sponzor daroval každé přepážky</para>
+                        </popis_dotazu>
+                            <sql>select count (*) from sponzor cross join prepazky where (id_vybaveni, id_sponzor) not in (select id_vybaveni, id_sponzor from prepazky_to_sponzor);
+
+insert into prepazky_to_sponzor (id_vybaveni, id_sponzor)
+select id_vybaveni, id_sponzor from sponzor cross join prepazky where (id_vybaveni, id_sponzor) not in (select id_vybaveni, id_sponzor from prepazky_to_sponzor);
+
+select count (*) from sponzor cross join prepazky where (id_vybaveni, id_sponzor) not in (select id_vybaveni, id_sponzor from prepazky_to_sponzor);
+
+rollback;
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D25">
+                        <popis_dotazu>
+                                <para>Vytvoř pohled nad hráči, kteří mají nižší úspěšnost než 40% </para>
+                        </popis_dotazu>
+                            <sql>create or replace view nic_moc_hraci
+as select hrac.* from hrac join zapasy on (hrac.id_hrac = zapasy.id_hrac) 
+where uspesnost &lt; 40 order by uspesnost desc;
+
+select hrac.* from hrac join zapasy on (hrac.id_hrac = zapasy.id_hrac) 
+where uspesnost &lt; 40 order by uspesnost desc;
+
+select * from nic_moc_hraci;
+</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D26">
+                        <popis_dotazu>
+                                <para>Vypiš jména třech nejhorších hráčů z pohledu nic_moc_hraci</para>
+                        </popis_dotazu>
+                            <sql>select jmeno_a_prijmeni from nic_moc_hraci fetch first 3 rows only;</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D27">
+                        <popis_dotazu>
+                                <para>Odstraň pálky, se kterými nikdo nehraje</para>
+                        </popis_dotazu>
+                            <sql>select count (*) from palka;
+
+delete palka where id_palka not in (select id_palka from hrac) ;
+
+select count (*) from palka;
+
+
+rollback;</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D28">
+                        <popis_dotazu>
+                                <para>Zvyš kvalitu všem míčkům, které mají kvalitu stupně 1, o 1 hvězdičku</para>
+                        </popis_dotazu>
+                            <sql>update micky set kvalita_pocet_hvezdicek = 2 where id_vybaveni in ( select id_vybaveni from micky where kvalita_pocet_hvezdicek = 1 );
+
+select kvalita_pocet_hvezdicek from micky
+
+rollback;</sql>
+                    </dotaz>
+                    <dotaz dotaz_id="D29">
+                        <popis_dotazu>
+                                <para>Vyber tréninkové haly družstev, která mají více než 5 hráčů</para>
+                        </popis_dotazu>
+                            <relacni_algebra>{druzstvo_to_hala * druzstvo (pocet_hracu &gt; 5)} *&gt; treninkova_hala</relacni_algebra>
+                    </dotaz>
+                    <dotaz dotaz_id="D30">
+                        <popis_dotazu>
+                                <para>Vypiš pálky, se kterými nikdo nehraje</para>
+                        </popis_dotazu>
+                            <relacni_algebra>palka
+\
+{palka &lt;* hrac}</relacni_algebra>
+                    </dotaz>
+                    <dotaz dotaz_id="D31">
+                        <popis_dotazu>
+                                <para>Vypiš všechny tréninkové haly, které sídlí ve městě Marseille</para>
+                        </popis_dotazu>
+                            <relacni_algebra>treninkova_hala &lt;* adresa (mesto = &apos;Marseille&apos; )</relacni_algebra>
+                    </dotaz>
+            </dotazy>
+            <pokryti_dotazu>
+                        <radek>
+                            <kategorie>A</kategorie>
+                            <odkazy>
+                                    <link url="#D1">D1</link>
+                                    <link url="#D2">D2</link>
+                                    <link url="#D6">D6</link>
+                                    <link url="#D8">D8</link>
+                                    <link url="#D10">D10</link>
+                                    <link url="#D15">D15</link>
+                                    <link url="#D16">D16</link>
+                                    <link url="#D17">D17</link>
+                                    <link url="#D18">D18</link>
+                                    <link url="#D19">D19</link>
+                                    <link url="#D20">D20</link>
+                                    <link url="#D21">D21</link>
+                                    <link url="#D22">D22</link>
+                                    <link url="#D25">D25</link>
+                            </odkazy>
+                            <kategorie_popis>A - Pozitivní dotaz nad spojením alespoň dvou tabulek</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>AR</kategorie>
+                            <odkazy>
+                                    <link url="#D1">D1</link>
+                                    <link url="#D15">D15</link>
+                                    <link url="#D16">D16</link>
+                            </odkazy>
+                            <kategorie_popis>A (RA) - Pozitivní dotaz nad spojením alespoň dvou tabulek</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>B</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                            </odkazy>
+                            <kategorie_popis>B - Negativní dotaz nad spojením alespoň dvou tabulek</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>C</kategorie>
+                            <odkazy>
+                                    <link url="#D12">D12</link>
+                            </odkazy>
+                            <kategorie_popis>C - Vyber ty, kteří mají vztah POUZE k ...</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>D1</kategorie>
+                            <odkazy>
+                                    <link url="#D13">D13</link>
+                            </odkazy>
+                            <kategorie_popis>D1 - Vyber ty, kteří/které jsou ve vztahu se všemi - dotaz s univerzální kvantifikací</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>D2</kategorie>
+                            <odkazy>
+                                    <link url="#D14">D14</link>
+                            </odkazy>
+                            <kategorie_popis>D2 - Kontrola výsledku dotazu z kategorie D1</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F1</kategorie>
+                            <odkazy>
+                                    <link url="#D2">D2</link>
+                                    <link url="#D8">D8</link>
+                                    <link url="#D11">D11</link>
+                                    <link url="#D23">D23</link>
+                                    <link url="#D25">D25</link>
+                            </odkazy>
+                            <kategorie_popis>F1 - JOIN ON</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F1R</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                            </odkazy>
+                            <kategorie_popis>F1 (RA) - JOIN ON</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F2</kategorie>
+                            <odkazy>
+                                    <link url="#D1">D1</link>
+                                    <link url="#D6">D6</link>
+                                    <link url="#D8">D8</link>
+                                    <link url="#D10">D10</link>
+                                    <link url="#D12">D12</link>
+                                    <link url="#D15">D15</link>
+                                    <link url="#D16">D16</link>
+                                    <link url="#D17">D17</link>
+                                    <link url="#D18">D18</link>
+                                    <link url="#D19">D19</link>
+                                    <link url="#D20">D20</link>
+                            </odkazy>
+                            <kategorie_popis>F2 - NATURAL JOIN|JOIN USING</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F2R</kategorie>
+                            <odkazy>
+                                    <link url="#D1">D1</link>
+                                    <link url="#D12">D12</link>
+                                    <link url="#D15">D15</link>
+                                    <link url="#D16">D16</link>
+                            </odkazy>
+                            <kategorie_popis>F2 (RA) - NATURAL JOIN|JOIN USING</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F3</kategorie>
+                            <odkazy>
+                                    <link url="#D23">D23</link>
+                                    <link url="#D24">D24</link>
+                            </odkazy>
+                            <kategorie_popis>F3 - CROSS JOIN</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F4</kategorie>
+                            <odkazy>
+                                    <link url="#D21">D21</link>
+                                    <link url="#D22">D22</link>
+                            </odkazy>
+                            <kategorie_popis>F4 - LEFT|RIGHT OUTER JOIN</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>F5</kategorie>
+                            <odkazy>
+                                    <link url="#D22">D22</link>
+                            </odkazy>
+                            <kategorie_popis>F5 - FULL (OUTER) JOIN</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>G1</kategorie>
+                            <odkazy>
+                                    <link url="#D5">D5</link>
+                                    <link url="#D8">D8</link>
+                                    <link url="#D10">D10</link>
+                                    <link url="#D11">D11</link>
+                                    <link url="#D13">D13</link>
+                                    <link url="#D14">D14</link>
+                                    <link url="#D23">D23</link>
+                                    <link url="#D24">D24</link>
+                                    <link url="#D27">D27</link>
+                                    <link url="#D28">D28</link>
+                            </odkazy>
+                            <kategorie_popis>G1 - Vnořený dotaz v klauzuli WHERE</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>G1R</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                                    <link url="#D13">D13</link>
+                            </odkazy>
+                            <kategorie_popis>G1 (RA) - Vnořený dotaz v klauzuli WHERE</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>G2</kategorie>
+                            <odkazy>
+                                    <link url="#D19">D19</link>
+                            </odkazy>
+                            <kategorie_popis>G2 - Vnořený dotaz v klauzuli FROM</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>G3</kategorie>
+                            <odkazy>
+                                    <link url="#D17">D17</link>
+                            </odkazy>
+                            <kategorie_popis>G3 - Vnořený dotaz v klauzuli SELECT</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>G4</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                                    <link url="#D13">D13</link>
+                                    <link url="#D14">D14</link>
+                            </odkazy>
+                            <kategorie_popis>G4 - Vztažený vnořený dotaz (EXISTS, NOT EXISTS)</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>G4R</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                                    <link url="#D13">D13</link>
+                            </odkazy>
+                            <kategorie_popis>G4 (RA) - Vztažený vnořený dotaz (EXISTS, NOT EXISTS)</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>H1</kategorie>
+                            <odkazy>
+                                    <link url="#D15">D15</link>
+                            </odkazy>
+                            <kategorie_popis>H1 - Množinové sjednocení - UNION</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>H2</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                                    <link url="#D12">D12</link>
+                            </odkazy>
+                            <kategorie_popis>H2 - Množinový rozdíl - MINUS nebo EXCEPT</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>H3</kategorie>
+                            <odkazy>
+                                    <link url="#D16">D16</link>
+                            </odkazy>
+                            <kategorie_popis>H3 - Množinový průnik - INTERSECT</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>I1</kategorie>
+                            <odkazy>
+                                    <link url="#D8">D8</link>
+                                    <link url="#D10">D10</link>
+                                    <link url="#D17">D17</link>
+                                    <link url="#D18">D18</link>
+                                    <link url="#D20">D20</link>
+                                    <link url="#D23">D23</link>
+                                    <link url="#D24">D24</link>
+                                    <link url="#D27">D27</link>
+                            </odkazy>
+                            <kategorie_popis>I1 - Agregační funkce (count|sum|min|max|avg)</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>I2</kategorie>
+                            <odkazy>
+                                    <link url="#D8">D8</link>
+                                    <link url="#D18">D18</link>
+                                    <link url="#D20">D20</link>
+                            </odkazy>
+                            <kategorie_popis>I2 - Agregační funkce nad seskupenými řádky - GROUP BY (HAVING)</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>J</kategorie>
+                            <odkazy>
+                                    <link url="#D11">D11</link>
+                            </odkazy>
+                            <kategorie_popis>J - Stejný dotaz ve třech různých formulacích SQL</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>K</kategorie>
+                            <odkazy>
+                                    <link url="#D20">D20</link>
+                            </odkazy>
+                            <kategorie_popis>K - Všechny klauzule v 1 dotazu - SELECT FROM WHERE GROUP BY HAVING ORDER BY</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>L</kategorie>
+                            <odkazy>
+                                    <link url="#D25">D25</link>
+                            </odkazy>
+                            <kategorie_popis>L - VIEW</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>M</kategorie>
+                            <odkazy>
+                                    <link url="#D26">D26</link>
+                            </odkazy>
+                            <kategorie_popis>M - Dotaz nad pohledem</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>N</kategorie>
+                            <odkazy>
+                                    <link url="#D24">D24</link>
+                            </odkazy>
+                            <kategorie_popis>N - INSERT, který vloží do některé tabulky množinu řádků, které jsou vybrány dotazem z vybraných tabulek (příkaz INSERT, ve kterém je klauzule VALUES nahrazena vnořeným poddotazem.</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>O</kategorie>
+                            <odkazy>
+                                    <link url="#D28">D28</link>
+                            </odkazy>
+                            <kategorie_popis>O - UPDATE s vnořeným SELECT příkazem</kategorie_popis>
+                        </radek>
+                        <radek>
+                            <kategorie>P</kategorie>
+                            <odkazy>
+                                    <link url="#D27">D27</link>
+                            </odkazy>
+                            <kategorie_popis>P - DELETE s vnořeným SELECT příkazem</kategorie_popis>
+                        </radek>
+            </pokryti_dotazu>
+        </queries>
+        <scripts>
+            <title>Scripts</title>
+            <para>
+                <link url="./create.sql">create.sql</link>
+            </para>
+            <para>
+                <link url="./insert.sql">insert.sql</link>
+            </para>
+        </scripts>
+        <conclussions>
+            <title>Závěr</title>
+                    <para>Na této semestrální práci jsem si ozkoušel svoji trpělivost, nervy a slabší znalosti SQL + relační algebry.</para>
+        </conclussions>
+        <references>
+            <title>Zdroje</title>
+                    <para>Courses - https://courses.fit.cvut.cz/BI-DBS/</para>
+                    <para>Nová demo semestrální práce - https://users.fit.cvut.cz/~hunkajir/dbs/main.xml</para>
+                    <para>Stará demo semestrální práce - https://users.fit.cvut.cz/~valenta/BI-DBS/semestralka/ukazka/main.xml</para>
+                    <para>Prosemináře</para>
+        </references>
+    </content>
+</sproject>
